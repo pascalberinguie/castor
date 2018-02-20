@@ -29,6 +29,7 @@ Debuild:
   stage: debuild
   before_script:
     - apt-get update
+    - apt-get install python-sphinx
     - mkdir /gpg_home
     - 'echo "$GPGPUBLICKEY" | gpg --import'
     - 'echo "$GPGPRIVATEKEY" | gpg --import'

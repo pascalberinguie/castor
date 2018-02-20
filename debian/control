@@ -2,7 +2,7 @@ Source: hebex-castor
 Section: netstat/net
 Priority: optional
 Maintainer: Pascal BERINGUIE <pascal.beringuie@orange.com>
-Build-Depends: debhelper (>= 7.0.50~), python-all (>= 2.7~), python-setuptools
+Build-Depends: debhelper (>= 7.0.50~), python-all (>= 2.7~), python-setuptools, python-sphinx
 Standards-Version: 3.9.2
 #X-Python-Version: ${python:Versions}
 X-Python-Version: >= 2.7

@@ -1,0 +1,17 @@
+Source: hebex-castor
+Section: netstat/net
+Priority: optional
+Maintainer: Pascal BERINGUIE <pascal.beringuie@orange.com>
+Build-Depends: debhelper (>= 7.0.50~), python-all (>= 2.7~), python-setuptools
+Standards-Version: 3.9.2
+#X-Python-Version: ${python:Versions}
+X-Python-Version: >= 2.7
+Homepage: https://gforge-portail.orangeportails.net/projects/castor/
+#Vcs-Git: https://gforge-portail.orangeportails.net/projects/castor/
+#Vcs-Browser: https://gforge-portail.orangeportails.net/projects/castor/
+
+Package: python-hebex-castor
+Architecture: all
+Depends: ${misc:Depends}, ${python:Depends}, python-cassandra
+Description: Python 2.x module to plug netstat with cassandra
+ .

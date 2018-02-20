@@ -1,0 +1,13 @@
+#!/usr/bin/make -f
+
+SHELL:=/bin/bash
+DEBVERS := $(shell dpkg-parsechangelog | sed -n -e 's/^Version: //p')
+VERSION := $(shell echo '$(DEBVERS)' | sed -e 's/^[[:digit:]]*://' -e 's/[~-].*//')
+
+%:
+	dh $@ --with python2
+
+override_dh_auto_install:
+	python2.7 setup.py install --root=$(CURDIR)/debian/python-hebex-castor --install-layout=deb;
+
+.PHONY: gen_files

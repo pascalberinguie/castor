@@ -1,0 +1,83 @@
+stages:
+  - tests
+  - debuild
+  - pbuilder
+  - deploy_package
+
+
+
+tests:
+   stage: tests
+   image: registry.gitlab.si.francetelecom.fr/app-hebex_python/hebex-python-toolbox
+   before_script:
+    - echo "deb http://ubuntu.packages.install-os.multis.p.fti.net/app all cassandra-drivers/3.7" > /etc/apt/sources.list.d/netstat.list
+    - apt-get update
+    - apt-get install -y python-cassandra
+    - export TZ='Europe/Paris'
+    - export PYTHONPATH=$PYTHONPATH:.
+   script: python castor_tests/test_castor.py
+
+
+
+Debuild:
+  image: pfs-installos-registry.artifactory.packages.install-os.multis.p.fti.net/pfs-installos/pbuilder:latest
+  tags: 
+    - search
+  variables :
+    RESULT : "."
+    GNUPGHOME: "/gpg_home"
+  stage: debuild
+  before_script:
+    - apt-get update
+    - mkdir /gpg_home
+    - 'echo "$GPGPUBLICKEY" | gpg --import'
+    - 'echo "$GPGPRIVATEKEY" | gpg --import'
+  script:
+    # on créer le fichier changes, le tar.gz, etc...
+    - debuild -S -sa -i -k${KEY_ID}
+        - mv *.dsc ../..
+    - mv *.tar.* ../..
+    - mv *_source.changes ../..
+     - debsign -S -k${KEY_ID} *_source.changes
+  artifacts:
+    paths:
+      - ./*.dsc
+      - ./*.tar.*
+      - ./*_source.changes
+    
+Pbuilder:
+  image: pfs-installos-registry.artifactory.packages.install-os.multis.p.fti.net/pfs-installos/pbuilder:latest
+  tags: 
+    - search
+  stage: pbuilder
+  before_script:
+    - apt-get update
+  script:
+    # on push le paquet sur le repo pour qu'il build en paquet binaire
+    - pbuilder oih amd64 trusty-dev admin build *.dsc
+    - mv /var/cache/pbuilder/result/*.deb .
+  artifacts: 
+    paths:
+      - ./*.deb
+  
+
+
+DeployPackage:
+  image: pfs-installos-registry.artifactory.packages.install-os.multis.p.fti.net/pfs-installos/pbuilder:latest
+  when: manual
+  only:
+    - master
+  variables :
+    GNUPGHOME: "/gpg_home"
+  tags:
+    - pbuilder
+  stage: deploy_package
+  before_script:
+    - apt-get update
+    - mkdir /gpg_home
+    - 'echo "$GPGPUBLICKEY" | gpg --import'
+    - 'echo "$GPGPRIVATEKEY" | gpg --import'
+    - apt-get install -y git dput hm-ci-check-push netcat-openbsd  || /bin/true
+  script:
+    - hm-ci-check-push-client -M dop hebex-castor*_source.changes
+

@@ -52,7 +52,7 @@ Debuild:
         - mv *.dsc ../..
     - mv *.tar.* ../..
     - mv *_source.changes ../..
-     - debsign -S -k${KEY_ID} *_source.changes
+    - debsign -S -k${KEY_ID} *_source.changes
   artifacts:
     paths:
       - ./*.dsc

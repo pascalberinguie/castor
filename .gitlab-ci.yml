@@ -1,5 +1,6 @@
 stages:
   - tests
+  - deploy_integration
   - debuild
   - pbuilder
   - deploy_package
@@ -17,6 +18,18 @@ tests:
     - export PYTHONPATH=$PYTHONPATH:.
    script: python castor_tests/test_castor.py
 
+deploy:
+  image: registry.gitlab.si.francetelecom.fr/oihtools/ci:runner
+  tags:
+    - deploy_automation_prod_shared
+  before_script:
+    - eval $(ssh-agent -s)
+    - ssh-add <(echo "${SSHKEY}")
+    - export
+  stage: deploy_integration
+  script:
+    - scp -r . netstat@netstat.vdev.infra.s1.p.fti.net:~/castor
+    - ssh netstat@netstat.vdev.infra.s1.p.fti.net "cd castor; export PYTHONPATH=$PYTHONPATH:.;python castor_tests/test_castor.py"
 
 
 Debuild:
@@ -29,7 +42,7 @@ Debuild:
   stage: debuild
   before_script:
     - apt-get update
-    - apt-get install python-sphinx
+    - apt-get install -y python-sphinx
     - mkdir /gpg_home
     - 'echo "$GPGPUBLICKEY" | gpg --import'
     - 'echo "$GPGPRIVATEKEY" | gpg --import'

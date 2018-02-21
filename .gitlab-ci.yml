@@ -50,9 +50,6 @@ Debuild:
   script:
     # on créer le fichier changes, le tar.gz, etc...
     - debuild -S -sa -i -k${KEY_ID}
-        - mv *.dsc ../..
-    - mv *.tar.* ../..
-    - mv *_source.changes ../..
     - debsign -S -k${KEY_ID} *_source.changes
   artifacts:
     paths:

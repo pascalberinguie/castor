@@ -44,6 +44,7 @@ curl -X POST --header 'Content-Type: application/json' --header 'Accept: applica
 
 
 curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{"cdef_expr": "testapi,testapi2,+,10,*","stime":1515167460,"etime":1515167500}' 'http://127.0.0.1:8000/datapoints'
+
 {
     "AVG": [
         [

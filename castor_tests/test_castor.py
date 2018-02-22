@@ -61,6 +61,7 @@ class CassandraRequester(CassandraKeyspace):
         self.delete_daily = self.session.prepare("DELETE FROM daily_data WHERE ds_name=? and period=?")
         self.delete_weekly = self.session.prepare("DELETE FROM weekly_data WHERE ds_name=? and period=?")
         self.get_wmax_req = self.session.prepare("SELECT max FROM weekly_data WHERE ds_name=? and period=? and timestamp = ?")
+        self.get_raw_req = self.session.prepare("SELECT timestamp,gauge, counter FROM raw_data WHERE ds_name=? and period=?")
         self.get_metadata = self.session.prepare("SELECT computed_retention,first_raw,last_agregated,raw_retention FROM metadatas WHERE   ds_name=?")
 
     def purge_ds(self,ds_name,ts_ref):
@@ -88,12 +89,23 @@ class CassandraRequester(CassandraKeyspace):
         req = self.delete_raw.bind((ds_name,int(ts_ref/86400) +1))
 
 
+    def get_raw(self, ds_name, ts):
+        period = int(ts /(86400))
+        resp = {}
+        req = self.get_raw_req.bind((ds_name, period))
+        for r in self.session.execute(req):
+            if not resp.has_key(r[0]):
+                resp[r[0]] = dict()
+            resp[r[0]]['gauge'] = r[1]
+            resp[r[0]]['counter'] = r[2]
+        return resp
+
+
     def get_wmax(self, ds_name, ts):
         period = int(ts /(86400*7))
         req = self.get_wmax_req.bind((ds_name, period, ts))
         for r in self.session.execute(req):
             return r[0]
-
 
     def get_metadata_as_array(self, ds_name):
         req = self.get_metadata.bind((ds_name,))
@@ -328,20 +340,23 @@ class TestCastor (unittest.TestCase):
 
 
     def test030_post_datasource_api(self):
-        self.skipTest("To be done")
         try:
             engine = CastorEngine(CONF_FILE)
-            api = DataSourceApi(engine)
+            api = DataSourcesApi(engine)
         except IOError:
             self.skipTest("Not a complete system with cassandra (netstat.conf is not present) some tests will be skipped.")
         date = int(time.time())
-        api.post({'host':'TestAutoPython', 'oid':'.1.2.3.4.5', 'data':{}})
-        api.post({'host':'TestAutoPython', 'oid':'.1.2.3.4.5', 'id_host': 888888, 'id_oid': 888888, 'data':{}})
-        api.post({'host':'TestAutoPython', 'oid':'.1.2.3.4.5', 'id_host': 999999, 'id_oid': 999999,'data':{date:16}})
-        get = api.get({'host':'TestAutoPython', 'oid':'.1.2.3.4.5'})
-        self.assertEquals(get[0]['id_host'],  999999)
-        self.assertEquals(get[0]['id_oid'], 999999)
-        self.assertEquals(get[0]['last_write'], date)
+        cass_req = CassandraRequester()
+        cass_req.purge_ds('test_api_post',date)
+        api.post('test_api_post', {'ds_infos':'Test automatise', 'values': {date:10, date+30:30, date+60:5, date+90:15}})
+        get = api.get('test_api_post')
+        self.assertEquals(get['last_inserted_ts'], date+90)
+        self.assertEquals(cass_req.get_raw('test_api_post', date)[date+30]['gauge'], 30)
+        #same test inserting a counter
+        api.post('test_api_post', {'ds_infos':'Test automatise', 'values_type':'counter', 'values': {date+120:1000}})
+        self.assertEquals(cass_req.get_raw('test_api_post', date)[date+120]['counter'], 1000)
+        cass_req.purge_ds('test_api_post',date)
+
 
 
 
@@ -473,11 +488,11 @@ class TestCastor (unittest.TestCase):
         storage.insert_collected_values('vartest','g',{ts : 5, ts+60 : 10, ts+120 : 12, 
                                                    ts+180 : 4, ts+240 : 10, ts+300 : 2})
         #without hash
-        with self.assertRaisesRegexp(DataPointsApi.ApiError, "Parameter hash is required"):
+        with self.assertRaisesRegexp(ApiError, "Parameter hash is required"):
             dp_api.post({'cdef_expr': "vartest,100,/","stime":ts,"etime":ts+300},'keytest')
         #with bad hash
         m = md5.new('toto')
-        with self.assertRaisesRegexp(DataPointsApi.ApiError, "Bad value for parameter hash"):
+        with self.assertRaisesRegexp(ApiError, "Bad value for parameter hash"):
             dp_api.post({'cdef_expr': "vartest,100,/","stime":ts,"etime":ts+300, "hash": m.hexdigest()},'keytest')
         #with good hash
         m = md5.new(",".join(["vartest,100,/",'keytest']))
@@ -494,14 +509,14 @@ class TestCastor (unittest.TestCase):
         res = dp_api.post({'cdef_expr': "vartest,100,/","stime":ts,"etime":ts+300})
         self.assertEquals(len(res['AVG']), 6)
         #with bad cdef
-        with self.assertRaisesRegexp(DataPointsApi.ApiError, "StackError"):
+        with self.assertRaisesRegexp(ApiError, "StackError"):
             res = dp_api.post({'cdef_expr': "vartest,100","stime":ts,"etime":ts+300})
-        with self.assertRaisesRegexp(DataPointsApi.ApiError, "UnknownDatasourceError"):
+        with self.assertRaisesRegexp(ApiError, "UnknownDatasourceError"):
             res = dp_api.post({'cdef_expr': "varinexistante","stime":ts,"etime":ts+300})
-        with self.assertRaisesRegexp(DataPointsApi.ApiError, "UnknownDatasourceError"):
+        with self.assertRaisesRegexp(ApiError, "UnknownDatasourceError"):
             res = dp_api.post({'cdef_expr': "nonolemecano","stime":ts,"etime":ts+300})
         #with missing parameter
-        with self.assertRaisesRegexp(DataPointsApi.ApiError, "Parameter .* is mandatory"):
+        with self.assertRaisesRegexp(ApiError, "Parameter .* is mandatory"):
             res = dp_api.post({'cdef_expr': "vartest,100,/"})
         #computed MAX
         res = dp_api.post({'cdef_expr': "vartest,100,/","stime":ts,"etime":ts+300, "func":"MAX"})

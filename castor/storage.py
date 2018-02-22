@@ -27,7 +27,7 @@ class CastorEngine:
 
 
         
-    def insert_collected_values(self, ds_name, vtype, values, tag='', use_batch=False):
+    def insert_collected_values(self, ds_name, vtype, values, tag='', use_batch=False, update_last_inserted_value=False):
         if len(values.keys()) == 0:
             return
         metadata = None
@@ -38,21 +38,36 @@ class CastorEngine:
         except Exception as e:
             raise e
         first_ts = metadata.first_raw
+        last_inserted_ts = metadata.last_inserted_ts
         for ts in values.keys():
             if first_ts is None or ts < first_ts:
                 first_ts = ts
+            if last_inserted_ts is None or ts > last_inserted_ts:
+                last_inserted_ts = ts
         if not metadata.raw_retention:
             metadata.set_default_retentions()
+
+
         if first_ts != metadata.first_raw:
             #we get metadata from database before updating it
             #because first_raw may have change
             metadata = self.metadatas.get_metadata(ds_name, False)
             if first_ts < metadata.first_raw:
                 metadata.set_first_raw(first_ts)
+
+        if update_last_inserted_value and last_inserted_ts > metadata.last_inserted_ts:
+            #we get metadata from database before updating it
+            #because last_raw may have change
+            metadata = self.metadatas.get_metadata(ds_name, False)
+            if last_inserted_ts > metadata.last_inserted_ts:
+                metadata.set_last_inserted_ts(last_inserted_ts)
+
+
         if vtype == 'g':
             self.storages[0].insert_gauge(ds_name, values, metadata.raw_retention, tag, use_batch)
         elif vtype == 'c':
             self.storages[0].insert_counter(ds_name, values, metadata.raw_retention, tag,  use_batch)
+
 
     def make_pending_actions(self):
         """
@@ -61,12 +76,14 @@ class CastorEngine:
         for storage in self.storages:
             storage.finish_pending_requests()
 
-    def update_or_create_metadata(self, ds_name, first_raw=None, last_agregated=None, raw_retention=None, computed_retention=None, ds_infos=None):
+    
+    def update_or_create_metadata(self, ds_name, first_raw=None, last_agregated=None, raw_retention=None, computed_retention=None, ds_infos=None, last_inserted_ts=None):
         """
         Update or create a metadata for a ds_name
         Will be called for example when you migrate datas and you want to set new date for first_raw
         you don't now if metadata exists or not
-        """        
+        """
+        metadata = None   
         try:
             metadata = self.metadatas.get_metadata(ds_name)
             if first_raw:
@@ -79,16 +96,26 @@ class CastorEngine:
                 metadata.set_computed_retention(computed_retention)
             if ds_infos:
                 metadata.set_ds_infos(ds_infos)
+            if last_inserted_ts:
+                metadata.set_last_inserted_ts(last_inserted_ts)
 
         except MetaDataStorage.NoSuchMetaData as e:
             if raw_retention and computed_retention:
-                self.metadatas.create_metadata(ds_name, first_raw, last_agregated, raw_retention, computed_retention)
-                return
-            if raw_retention:
-                self.metadatas.create_metadata(ds_name, first_raw, last_agregated, raw_retention)
-                return
-            self.metadatas.create_metadata(ds_name, first_raw, last_agregated)
+                metadata = self.metadatas.create_metadata(ds_name, first_raw, last_agregated, raw_retention, computed_retention)
+            elif raw_retention:
+                metadata = self.metadatas.create_metadata(ds_name, first_raw, last_agregated, raw_retention)
+            else:
+                metadata = self.metadatas.create_metadata(ds_name, first_raw, last_agregated)
+            if ds_infos:
+                metadata.set_ds_infos(ds_infos)
+            if last_inserted_ts:
+                metadata.set_last_inserted_ts(last_inserted_ts)
+        return metadata
 
+
+
+    def get_metadata_by_name(self, ds_name):
+        return self.metadatas.get_metadata(ds_name)
 
 
     def eval_cdef(self, expr_cdef, starttime, endtime, step, consolidation=None, tag=None, raw_data_allowed = True):

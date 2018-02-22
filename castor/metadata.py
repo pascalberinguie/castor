@@ -1,6 +1,5 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
-#nono
 
 from castor.config import CassandraKeyspace
 from cassandra import InvalidRequest
@@ -18,7 +17,7 @@ class MetaData:
     """
 
     def __init__(self,storage, ds_name, first_raw, last_agregated, raw_retention, computed_retention,
-                 ds_infos=None, create_or_update=False):
+                 ds_infos=None, last_inserted_ts= None, create_or_update=False):
         """
         Create a MetadaObjet with given parameters
         Objet is not inserted in cassandra database except if parameter create_or_update is set to true
@@ -32,8 +31,10 @@ class MetaData:
         self.computed_retention = computed_retention
         self.last_agregated = last_agregated
         self.ds_infos = ds_infos
+        self.last_inserted_ts = last_inserted_ts
         if create_or_update:
             self.__write__()
+
 
     def __write__(self):
         """
@@ -45,14 +46,14 @@ class MetaData:
         row = None
         for row in get_res:
             if self.first_raw != row[0] or  self.last_agregated != row[1] \
-                or self.raw_retention != row[2] or self.computed_retention != row[3] or self.ds_infos != row[4]:
+                or self.raw_retention != row[2] or self.computed_retention != row[3] or self.ds_infos != row[4] or self.last_inserted_ts != row[5]:
                 update_metadata = self.storage.update_metadata.bind((self.first_raw, self.last_agregated, \
                                                                      self.raw_retention, self.computed_retention,
-                                                                     self.ds_infos, self.ds_name))
+                                                                     self.ds_infos, self.last_inserted_ts, self.ds_name))
                 self.storage.session.execute(update_metadata)
         if not row:
             insert_metadata = self.storage.insert_metadata.bind((self.ds_name, self.first_raw, self.last_agregated,
-                                                                 self.raw_retention, self.computed_retention))
+                                                                 self.raw_retention, self.computed_retention, self.ds_infos, self.last_inserted_ts))
             self.storage.session.execute(insert_metadata)
 
     def set_first_raw(self, new_value):
@@ -80,8 +81,19 @@ class MetaData:
         self.raw_retention = DEFAULT_RAW_RETENTION
         self.__write__()
 
+
+    def set_last_inserted_ts(self, last_inserted_ts):
+        self.last_inserted_ts = last_inserted_ts
+        self.__write__()
+
+
     def __str__(self):
-        return "Metadata %s first_raw: %s raw_retention:%s computed_retention: %s last_agregated: %s"%(self.ds_name, self.first_raw, self.raw_retention, self.computed_retention, self.last_agregated)
+        return "Metadata %s"%str(self.to_array)
+
+
+    def to_array(self):
+        return {'ds_name':self.ds_name, 'first_raw':self.first_raw, 'raw_retention': self.raw_retention,
+         'computed_retention': self.computed_retention, 'last_agregated':  self.last_agregated, 'ds_infos': self.ds_infos, 'last_inserted_ts': self.last_inserted_ts}
 
 
 class MetaDataStorage(CassandraKeyspace):
@@ -102,7 +114,7 @@ class MetaDataStorage(CassandraKeyspace):
 
     
     def __prepare_requests__(self):
-        create_cf = "CREATE TABLE metadatas (ds_name ascii, first_raw int, last_agregated int, raw_retention int, computed_retention int,ds_infos ascii,"
+        create_cf = "CREATE TABLE metadatas (ds_name ascii, first_raw int, last_agregated int, raw_retention int, computed_retention int, last_inserted_ts int, ds_infos ascii,"
         create_cf += "PRIMARY key(ds_name))"
         self.create_cf = self.session.prepare(create_cf)
 
@@ -110,9 +122,9 @@ class MetaDataStorage(CassandraKeyspace):
         delete_metadatas = "DELETE FROM metadatas where ds_name=?"
         self.delete_metadatas_req = self.session.prepare(delete_metadatas)
 
-        get_metadata = "SELECT first_raw, last_agregated, raw_retention, computed_retention, ds_infos FROM metadatas where ds_name=?"
-        insert_metadata = "INSERT INTO metadatas(ds_name,first_raw,last_agregated, raw_retention, computed_retention) values(?,?,?,?,?)"
-        update_metadata = "UPDATE metadatas SET first_raw=?, last_agregated=?, raw_retention=?, computed_retention=?, ds_infos=? where ds_name=?"
+        get_metadata = "SELECT first_raw, last_agregated, raw_retention, computed_retention, ds_infos, last_inserted_ts FROM metadatas where ds_name=?"
+        insert_metadata = "INSERT INTO metadatas(ds_name,first_raw,last_agregated, raw_retention, computed_retention, ds_infos, last_inserted_ts) values(?,?,?,?,?,?,?)"
+        update_metadata = "UPDATE metadatas SET first_raw=?, last_agregated=?, raw_retention=?, computed_retention=?, ds_infos=?,last_inserted_ts=?  where ds_name=?"
         self.get_metadata_req = self.session.prepare(get_metadata)
         self.get_metadata_req.consistency_level = self.read_consistency
         self.insert_metadata = self.session.prepare(insert_metadata)
@@ -151,9 +163,9 @@ class MetaDataStorage(CassandraKeyspace):
             for row in result:
                 if row[2] is None and row[3] is None:
                     metadata = MetaData(self, ds_name, row[0], row[1], DEFAULT_RAW_RETENTION, 
-                                        DEFAULT_COMPUTED_RETENTION, row[4])
+                                        DEFAULT_COMPUTED_RETENTION, row[4], row[5])
                 else:
-                    metadata = MetaData(self, ds_name, row[0], row[1], row[2], row[3], row[4])
+                    metadata = MetaData(self, ds_name, row[0], row[1], row[2], row[3], row[4], row[5])
                 self.metadatas[ds_name] = metadata
                 return metadata
             else:
@@ -169,7 +181,7 @@ class MetaDataStorage(CassandraKeyspace):
             raise MetaDataStorage.MetaDataAlreadyExists("Metadata %s already exists"%(ds_name))
         else:
             #it is the nominal case
-            new_metadata = MetaData(self, ds_name, first_raw, last_agregated, raw_retention, computed_retention, None, True)
+            new_metadata = MetaData(self, ds_name, first_raw, last_agregated, raw_retention, computed_retention, None, None, True)
             self.metadatas[ds_name] = new_metadata
             return new_metadata
 

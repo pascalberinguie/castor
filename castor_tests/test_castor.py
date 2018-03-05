@@ -1,5 +1,6 @@
 #!/usr/bin/python
 import unittest
+import os
 import time
 from castor.rrd import *
 from castor.operations import *
@@ -8,7 +9,12 @@ from castor.storage import *
 from castor.castor_api import *
 import md5
 
-CONF_FILE = '/etc/hebex/netstat/netstat.conf'
+CONF_FILE = 'demo/castor.conf'
+
+if os.environ.has_key('CONF_FILE'):
+    CONF_FILE = os.environ['CONF_FILE']
+
+print "Launching tests with conf file %s"%CONF_FILE
 
 class FakeRows(list):
 
@@ -273,8 +279,8 @@ class TestCastor (unittest.TestCase):
     def test020_get_unknown_metadata(self):
         try:
             config = CastorConfiguration(CONF_FILE)
-        except IOError:
-                self.skipTest("Not a complete system with cassandra (netstat.conf is not present) some tests will be skipped.")
+        except CastorConfiguration.ConfigurationMissingElement:
+                self.skipTest("Not a complete system with cassandra (missing some parameters in castor.conf) some tests will be skipped.")
         self.metadatastorage= MetaDataStorage(config)	
         try:
                 self.metadatastorage.delete_metadata('test')
@@ -286,8 +292,8 @@ class TestCastor (unittest.TestCase):
     def test021_create_retrieve_and_update_metadata(self):
         try:
             config = CastorConfiguration(CONF_FILE)
-        except IOError:
-                self.skipTest("Not a complete system with cassandra (netstat.conf is not present) some tests will be skipped.")
+        except CastorConfiguration.ConfigurationMissingElement:
+                self.skipTest("Not a complete system with cassandra (missing some parameters in castor.conf) some tests will be skipped.")
         self.metadatastorage= MetaDataStorage(config)    
 	md = self.metadatastorage.create_metadata('test')
 	md.set_last_agregated(10)
@@ -299,8 +305,8 @@ class TestCastor (unittest.TestCase):
         #the test below don't test that metadata has been realy inserted in cassandra
         try:
             config = CastorConfiguration(CONF_FILE)
-        except IOError:
-                self.skipTest("Not a complete system with cassandra (netstat.conf is not present) some tests will be skipped.")
+        except CastorConfiguration.ConfigurationMissingElement:
+                self.skipTest("Not a complete system with cassandra (missing some parameters in castor.conf) some tests will be skipped.")
         self.metadatastorage= MetaDataStorage(config)
         md = self.metadatastorage.get_metadata('test')
         self.assertEquals(md.last_agregated, 10)
@@ -343,8 +349,8 @@ class TestCastor (unittest.TestCase):
         try:
             engine = CastorEngine(CONF_FILE)
             api = DataSourcesApi(engine)
-        except IOError:
-            self.skipTest("Not a complete system with cassandra (netstat.conf is not present) some tests will be skipped.")
+        except CastorConfiguration.ConfigurationMissingElement:
+            self.skipTest("Not a complete system with cassandra (missing some parameters in castor.conf) some tests will be skipped.")
         date = int(time.time())
         cass_req = CassandraRequester()
         cass_req.purge_ds('test_api_post',date)
@@ -364,8 +370,8 @@ class TestCastor (unittest.TestCase):
         try:
             engine = CastorEngine(CONF_FILE)
             cass_req = CassandraRequester()
-        except IOError:
-            self.skipTest("Not a complete system with cassandra (netstat.conf is not present) some tests will be skipped.")
+        except CastorConfiguration.ConfigurationMissingElement:
+            self.skipTest("Not a complete system with cassandra (missing some parameters in castor.conf) some tests will be skipped.")
         cass_req.delete_metadata('00:00')
         engine.update_or_create_metadata('00:00')
         #engine.update_or_create_metadata('00:00',first_raw=None, last_agregated=None, raw_retention=None, computed_retention=None)
@@ -397,8 +403,8 @@ class TestCastor (unittest.TestCase):
             cass_req = CassandraRequester()
             cass_req.purge_ds('01:00',ts)
             cass_req.purge_ds('01:10',ts)
-        except IOError:
-            self.skipTest("Not a complete system with cassandra (netstat.conf is not present) some tests will be skipped.")
+        except CastorConfiguration.ConfigurationMissingElement:
+            self.skipTest("Not a complete system with cassandra (missing some parameters in castor.conf) some tests will be skipped.")
         ts = int(time.time()) - 365 * 86400 #1 year ago
         storage.insert_collected_values('var1', 'g', {ts+10 : 5.0, ts+20: 10.0, ts+30: 20.5, ts+40: 16}, use_batch=False)
         storage.insert_collected_values('var2', 'g', {ts+10 : 100, ts+20: 15.0, ts+30: 22, ts+40:1 }, use_batch=False)
@@ -420,8 +426,8 @@ class TestCastor (unittest.TestCase):
             cass_req.purge_ds('var1',ts)
             cass_req.purge_ds('var2',ts)
             storage = CastorEngine(CONF_FILE)
-        except IOError:
-            self.skipTest("Not a complete system with cassandra (netstat.conf is not present) some tests will be skipped.")
+        except CastorConfiguration.ConfigurationMissingElement:
+            self.skipTest("Not a complete system with cassandra (missing some parameters in castor.conf) some tests will be skipped.")
         storage.insert_collected_values('var1', 'g', {ts+10 : 5.0, ts+20: 10.0, ts+30: 20.5, ts+40: 16,
                                                        ts+86410: 12, ts+86420: 20, ts+86430: 50}, use_batch=False)
         storage.insert_collected_values('var2', 'g', {ts+10 : 100, ts+20: 15.0, ts+30: 22, ts+40:1,
@@ -441,8 +447,8 @@ class TestCastor (unittest.TestCase):
             cass_req.purge_ds('var1', ts)
             cass_req.purge_ds('var2', ts)
             storage = CastorEngine(CONF_FILE)
-        except IOError:
-            self.skipTest("Not a complete system with cassandra (netstat.conf is not present) some tests will be skipped.")
+        except CastorConfiguration.ConfigurationMissingElement:
+            self.skipTest("Not a complete system with cassandra (missing some parameters in castor.conf) some tests will be skipped.")
         storage.insert_collected_values('var1', 'g', {ts-20000 : 2.0, ts+10 : 5.0, ts+20: 10.0, ts+30: 20.5, ts+40: 16,
                                                        ts+86410: 23, ts+86420: 20, ts+86430: 50}, use_batch=False)
         storage.insert_collected_values('var2', 'g', {ts-20000 : 2.0, ts+10 : 100, ts+20: 15.0, ts+30: 22, ts+40:1,
@@ -465,8 +471,8 @@ class TestCastor (unittest.TestCase):
             cass_req = CassandraRequester()
             cass_req.purge_ds('var1', ts)
             storage = CastorEngine(CONF_FILE)
-        except IOError:
-            self.skipTest("Not a complete system with cassandra (netstat.conf is not present) some tests will be skipped.") 
+        except CastorConfiguration.ConfigurationMissingElement:
+            self.skipTest("Not a complete system with cassandra (missing some parameters in castor.conf) some tests will be skipped.") 
         storage.insert_collected_values('var1', 'g', {ts+200 : 5.0, ts+300: 10.0, ts+400: 20.5, ts+500: 16}, use_batch=False)
         storage.archive_ds('var1', True, ts+86400)
         cass_req.purge_raw('var1', ts)
@@ -481,8 +487,8 @@ class TestCastor (unittest.TestCase):
             storage = CastorEngine(CONF_FILE)
             cass_req = CassandraRequester()
             dp_api = DataPointsApi(storage)
-        except IOError:
-            self.skipTest("Not a complete system with cassandra (netstat.conf is not present) some tests will be skipped.")
+        except CastorConfiguration.ConfigurationMissingElement:
+            self.skipTest("Not a complete system with cassandra (missing some parameters in castor.conf) some tests will be skipped.")
         ts = int(time.time()) - 60 * 5
         cass_req.purge_ds('vartest', ts)
         storage.insert_collected_values('vartest','g',{ts : 5, ts+60 : 10, ts+120 : 12, 

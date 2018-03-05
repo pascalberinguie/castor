@@ -13,9 +13,7 @@ from castor.castor_api import DataPointsApi
 
 CASTOR_CONF='demo/castor.conf'
 storage = CastorEngine(CASTOR_CONF)
-#cdef that are currently imported from netstat
-#avoid to get the same cdef several times
-
+#
 app = Flask(__name__)
 api = Api(app)
 
@@ -34,7 +32,7 @@ class DataPointsCollection(Resource):
         implements POST /datapoints
         json must contain
         cdef_expr: cdef expression to evaluate
-        hash: mandatory if DATAPOINTS_SECRET_KEY is set in netstat.conf
+        hash: mandatory if DATAPOINTS_SECRET_KEY is set in castor.conf
         id_host: mandatory only if cdef as floating references on hosts :3200,:3205,+
         stime:
         etime:

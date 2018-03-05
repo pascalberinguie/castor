@@ -30,7 +30,7 @@ deploy:
   script:
     - ssh netstat@netstat.vdev.infra.s1.p.fti.net "rm -rf castor_tests_gitlab; mkdir -p castor_tests_gitlab"
     - scp -r . netstat@netstat.vdev.infra.s1.p.fti.net:~/castor_tests_gitlab/castor
-    - ssh netstat@netstat.vdev.infra.s1.p.fti.net "cd ~/castor_tests_gitlab/castor; export PYTHONPATH=$PYTHONPATH:.;python castor_tests/test_castor.py"
+    - ssh netstat@netstat.vdev.infra.s1.p.fti.net "cd ~/castor_tests_gitlab/castor; export PYTHONPATH=$PYTHONPATH:.; export CONF_FILE=/etc/hebex/netstat/netstat.conf; python castor_tests/test_castor.py"
 
 
 Debuild:

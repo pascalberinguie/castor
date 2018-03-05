@@ -130,7 +130,7 @@ class CastorEngine:
         
         result = {}
         operation = Operation(expr_cdef) 
-        date = time.time()
+        date = int(time.time())
         if endtime > date:
             #we can't request values in the future
             endtime = date
@@ -200,6 +200,7 @@ class CastorEngine:
                 #no agregated data, we will use raw data.
                 storage_index = 0
                 indexation_step = self.storages[storage_index].get_indexation_macro_step()
+                print endtime
                 end = min((int((start + indexation_step) / indexation_step) * indexation_step), endtime)
             elif start <= newest_fraw_data and storage_index == 0:
                 storage_index = 1
@@ -336,7 +337,7 @@ class CastorEngine:
 
 if __name__ == "__main__":
        
-    storage = CastorEngine('/etc/hebex/netstat/netstat.conf')
+    storage = CastorEngine('/demo/castor.conf')
     # print storage.eval_cdef(15891, 172532, 1450865918, 1450866518, 30, ['AVG'])
     storage.insert_collected_values('01:00', 'g', {10 : 5.0, 20: 10.0, 30: 20.5, 40: 16}, use_batch=False)
     storage.insert_collected_values('01:10', 'g', {10 : 100, 20: 15.0, 30: 22, 40:1 }, use_batch=False)

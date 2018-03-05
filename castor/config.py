@@ -14,7 +14,7 @@ class CastorConfiguration:
         pass
 
     item = {} 
-    item['CASSANDRA_KEYSPACE'] = 'netstat'
+    item['CASSANDRA_KEYSPACE'] = 'castor'
 
     def __init__(self, conf_file):
         try:

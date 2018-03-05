@@ -53,3 +53,20 @@ curl -X POST --header 'Content-Type: application/json' --header 'Accept: applica
     "etime": 1515167500, 
     "stime": 1515167460
 }
+
+
+
+Tests using api from python:
+----------------------------
+
+export CONF_FILE='path/to/your/conf/file'
+python  demo/demo.py
+
+#demo.py is a simple script that contains lines:
+ts = int(time.time()) - 1000
+
+storage = CastorEngine(CONF_FILE)
+        
+storage.insert_collected_values('var1', 'g', {ts+10 : 5.0, ts+20: 10.0, ts+30: 20.5, ts+40: 16}, use_batch=False)
+storage.insert_collected_values('var2', 'g', {ts+10 : 100, ts+20: 15.0, ts+30: 22, ts+40:1}, use_batch=False)
+print storage.eval_cdef('var1,var2,+,10,*', ts, ts+4000, 10)

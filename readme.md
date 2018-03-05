@@ -1,4 +1,4 @@
-Test with api:
+Test with web api:
 ==============
 Configure demo/castor.conf
 
@@ -67,7 +67,7 @@ curl -X POST --header 'Content-Type: application/json' --header 'Accept: applica
 
 
 
-Tests using api from python:
+Tests using python api:
 ----------------------------
 
 export CONF_FILE='path/to/your/conf/file'

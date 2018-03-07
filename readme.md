@@ -92,6 +92,95 @@ print storage.eval_cdef('var1,var2,+,10,*', ts, ts+4000, 10)
 
 
 # Implementation
+
+## Tables in cassandra
+castor stores values in cassandra column families in the keyspace specified in castor.conf file
+
+```plantuml
+class metadatas{
+str ds_name
+str ds_infos
+int raw_retention
+int computed_retention
+int first_raw
+int last_agregated
+int last_inserted_ts
+
+}
+
+class raw_data{
+str ds_name
+int period
+int timestamp
+str tag
+int counter
+int gauge    
+}
+
+
+class daily_data{
+str ds_name
+int period
+int timestamp 
+str tag 
+float avg
+float max
+}
+
+class weekly_data{
+str ds_name
+int period
+int timestamp 
+str tag 
+float avg
+float max
+}
+
+class monthly_data{
+str ds_name
+int period
+int timestamp 
+str tag 
+float avg
+float max
+}
+
+class yearly_data{
+str ds_name
+int period
+int timestamp 
+str tag 
+float avg
+float max
+}
+```
+
+* Table raw_data contains collected values whithout any transformation. If value is a gauge, it's stored in colum gauge. If value is a counter, it's stored un colum counter.
+Patition key is composed of ds_name and period. Period is the number of day since 1st january 1970 int(timestamp/86400)
+* Other tables  daily_data, weekly_data, monthly_data, yearly_data contains values computed by function storage.archive_ds with greater steps. 
+    * In table daily_data we store a value each 5 minutes. 
+    * In table weekly_data we store a value each 50 minutes
+    * In table monthly_data we store a value each 3h20 minutes
+    * In table yearly_data we store a value each 40h
+
+This steps can be changed directly in CastorEngine constructor (storage.py) but you can't make this operation if your database is not empty.
+Field period (used in partition key) is the number of day since 1970 for daily_data int(timestamp/number of seconds in a day), the number of week since 1970 for weekly_data int(timestamp/number of seconds in a week) etc...
+Function archive_ds take all values in raw_data table in range ts-required_step/2 - ts+required_step/2 and store in destination table the max and the average. 
+
+When we request values, castor algorithm read datas in the less precise table that give a sufficient precision.
+For example if you want 200 points on your graph for a period of one year. A point each 40H is sufficient. So Castor will read only in table yearly_data for values older than valued contained in field last_agregated of table metadatas
+
+
+
+* Table metadatas contains informations about datasource identified by ds_name
+    * ds_infos: datasource description
+    * raw_retention: time in seconds in which raw values (in table raw_data) are kept
+    * computed_retention: time in seconds in which computed values (tables daily_data, weekly_data, monthly_data, yearly_data) are kept
+    * first_raw: oldest timestamp in raw data for datasource
+    * last_agregated: most recent value computed in tables daily_data, weekly_data, etc.... (last time function archive_ds has been called on this datasource) It's necessary to read values in raw_datas table if most recent values are needed
+    * last_inserted_ts: most recent value in raw data. This value is not required by castor  and is set only if values are inserted by datasource api
+    
+
 ## castor.rrd
 ```plantuml
 class Dataset

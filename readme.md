@@ -85,11 +85,16 @@ curl -X POST --header 'Content-Type: application/json' --header 'Accept: applica
 ### How to secure calls to api
 If you want to limt calls to your api, yo can declare a variable 
 ```
-DATAPOINTS_SECRET_KEY=MyPasword
+DATAPOINTS_SECRET_KEY=MyPassword
 ```
 in castor conf file. And a parameter hash will be required in json to POST on datapoints collection
 with hash=md5(rpn expr + "," + DATAPOINTS_SECRET_KEY)
 
+```
+echo -n "testapi,testapi2,+,10,*,MyPassword"|md5sum
+9fc1aa2b452a522befd2adf1f54ff847  -
+
+curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{"cdef_expr": "testapi,testapi2,+,10,*","stime":1515167460,"etime":1515167500,"hash": "9fc1aa2b452a522befd2adf1f54ff847"}' 'http://127.0.0.1:8000/datapoints'
 
 ## Tests using python api:
 

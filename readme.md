@@ -1,4 +1,11 @@
-# Test with web api:
+# Why castor
+Castor in not a graphing tool but a python library that can be plugged to your graphing tool to store datas in cassandra.
+A lot of old graphing tools use rrdtool (https://oss.oetiker.ch/rrdtool/) a solution that store data in binary files and enables you to create graphs based on evaluation of rpn expression composed of datasources previously stored
+Some modern tools use more scalable storage solutions like cassandra but don't permit to make calculations based on several stored datasource. Castor is a pragmatic solution that store data in cassandra and enables you to request evaluations of rpn expression.
+So it may be easy to adapt your graphing tool based on rrdtool to use Castor. Castor don't generate graphs as png image but only provide an api to request values because a lot of modern solutions enables you to produce graphs on client side (like https://www.highcharts.com/ for example)
+
+# Start with castor
+## Test with web api:
 
 * Configure demo/castor.conf
 * Run in a terminal
@@ -74,7 +81,7 @@ curl -X POST --header 'Content-Type: application/json' --header 'Accept: applica
 ```
 
 
-# Tests using python api:
+## Tests using python api:
 
 ```python
 export CONF_FILE='path/to/your/conf/file'

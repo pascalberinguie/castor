@@ -352,4 +352,4 @@ monthly_data (1515110400 - 1515196799) step=12000 period=584
 yearly_data (1515110400 - 1515196799) step=144000 period=47
 1  values stored 0 expected
 ```
-This script will count values stored in tables weekly_data, monthly_data, etc... for concerned datasource in the day englobig given timestamp.
+This script will count values stored in tables weekly_data, monthly_data, etc... for concerned datasource in the day englobing given timestamp.

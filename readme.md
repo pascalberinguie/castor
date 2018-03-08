@@ -339,7 +339,7 @@ class DataSourcesApi{
 ```
 Classes DataPointsApi and DataPointsApi implements web api
 
-#Debuging
+# Debuging
 To check if archives has been correctly computed, you can launch
 ```
 demo/test_archives_for_ds.py ds_name timestamp

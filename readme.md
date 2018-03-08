@@ -353,3 +353,79 @@ yearly_data (1515110400 - 1515196799) step=144000 period=47
 1  values stored 0 expected
 ```
 This script will count values stored in tables weekly_data, monthly_data, etc... for concerned datasource in the day englobing given timestamp.
+
+
+# Generating graph
+* Call api.wsgi (given in directory) demo from your apache configuration
+
+```
+<Location "/demo/">
+WSGIProcessGroup netstat_wsgi_apis
+WSGIApplicationGroup %{GLOBAL}
+WSGIScriptReloading On
+SetHandler wsgi-script
+Options +ExecCGI
+
+RewriteCond %{REQUEST_URI} =/demo/datapoints
+RewriteRule ^.*/demo/([^.]*) api.wsgi/datapoints
+RewriteCond %{REQUEST_URI} =/demo/datasources
+RewriteRule ^.*/demo/([^.]*) api.wsgi/datasources
+</Location>
+
+```
+* So you will have an api that answer on port 80 with path /demo/datapoints
+* And if you want to use higcharts (https://www.highcharts.com/)  for example, host the following file on your server in another location
+
+```html
+<html>
+<head>
+<script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+<script src="https://code.highcharts.com/highcharts.js"></script>
+
+<script type="text/javascript">
+function create_graph(options, target_div)
+{
+        options.chart.events = Object();
+        options.chart.renderTo = target_div;
+        options.resp_counter=0;
+        for(j=0; j < options.series.length; j++)
+        {
+            var url = options.series[j].api_url;
+            var api_json = JSON.parse(options.series[j].api_json);
+            agreg_func = api_json['func'];
+            $.ajax
+            ({
+                type: "POST",
+                url: url,
+                dataType: 'json',
+                contentType: 'application/json',
+                data: JSON.stringify(api_json),
+                success: (function(myoptions,myj)
+                {
+                return function( data ) {
+                    myoptions.series[myj].data = data[agreg_func];
+                    myoptions.resp_counter++;
+                    if(myoptions.resp_counter == myoptions.series.length)
+                    {
+                    new Highcharts.Chart(myoptions);
+                    }
+                };
+            }(options,j))
+            });
+      }
+}
+
+</script>
+</head>
+<body onload="javascript:create_graph(JSON.parse($('#graph_options').val()), 'graph')">
+
+
+<input id="graph_options" class="hgoptions" value='{"chart":{"renderTo":"my_graph","type":"spline","zoomType":"x"},"title":{"text":"Test"},"xAxis":{"type":"datetime"},"yAxis":{"title":{"text":"nb"}},"series":[{"name":"test","color":"#B70000","type":"line","data":[],"stacking":"","api_url":"\/demo\/datapoints","api_json":"{\"cdef_expr\":\"testapi,testapi2,+,10,*\",\"stime\":1515167460, \"etime\":1515167500,\"func\":\"AVG\",\"raw_data_allowed\":true}"}]}' type="hidden">
+
+<div id='graph'></div>
+
+
+</body>
+</html>
+```
+

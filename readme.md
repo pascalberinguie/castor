@@ -81,6 +81,8 @@ curl -X POST --header 'Content-Type: application/json' --header 'Accept: applica
     "stime": 1515167460
 }
 ```
+**Note that timestamps given in api response are in milliseconds since 1970 whereas timestamps given in request are in seconds**
+
 
 ### How to secure calls to api
 If you want to limt calls to your api, yo can declare a variable 
@@ -319,7 +321,7 @@ This option is not tested yet and will be fully available in futures releases. O
 
 **See examples above** to use these functions
 
-# castor.castor_api
+## castor.castor_api
 ```plantuml
 
 CastorApi <|-- DataPointsApi
@@ -336,3 +338,18 @@ class DataSourcesApi{
 
 ```
 Classes DataPointsApi and DataPointsApi implements web api
+
+#Debuging
+To check if archives has been correctly computed, you can launch
+```
+demo/test_archives_for_ds.py ds_name timestamp
+daily_data (1515110400 - 1515196799) step=300 period=17536
+288  values stored 287 expected
+weekly_data (1515110400 - 1515196799) step=3000 period=2505
+27  values stored 28 expected
+monthly_data (1515110400 - 1515196799) step=12000 period=584
+8  values stored 7 expected
+yearly_data (1515110400 - 1515196799) step=144000 period=47
+1  values stored 0 expected
+```
+This script will count values stored in tables weekly_data, monthly_data, etc... for concerned datasource in the day englobig given timestamp.

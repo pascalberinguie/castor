@@ -223,11 +223,11 @@ PARAM2 = V2
 ```
 as a dict()
 
-* Class CassandraSession initialize a connection to cassandra and you can inherit from it to use self.session
+* Class CassandraKeyspace initialize a connection to cassandra and you can inherit from it to use self.session
 
 ## castor.rrd
 ```plantuml
-CassandraSession <|-- RRDBaseStorage
+CassandraKeyspace <|-- RRDBaseStorage
 RRDBaseStorage <|-- RRDRawStorage
 RRDBaseStorage <|-- RRDAgregatedStorage
 
@@ -265,7 +265,7 @@ If you want to compute an expression based on several datasources with different
 ## castor.metadata
 ```plantuml
 class MetaData
-CassandraSession <|-- MetaDataStorage
+CassandraKeyspace <|-- MetaDataStorage
 ```
 * Classes MetaData and MetaDataStorage manage table metadatas and enables you to get or to store values in this table concerning your datasources
 

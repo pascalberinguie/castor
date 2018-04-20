@@ -97,7 +97,7 @@ echo -n "testapi,testapi2,+,10,*,MyPassword"|md5sum
 9fc1aa2b452a522befd2adf1f54ff847  -
 
 curl -X POST --header 'Content-Type: application/json' --header 'Accept: application/json' -d '{"cdef_expr": "testapi,testapi2,+,10,*","stime":1515167460,"etime":1515167500,"hash": "9fc1aa2b452a522befd2adf1f54ff847"}' 'http://127.0.0.1:8000/datapoints'
-
+```
 ## Tests using python api:
 
 ```python
@@ -223,11 +223,11 @@ PARAM2 = V2
 ```
 as a dict()
 
-* Class CassandraKeyspace initialize a connection to cassandra and you can inherit from it to use self.session
+* Class CassandraSession initialize a connection to cassandra and you can inherit from it to use self.session
 
 ## castor.rrd
 ```plantuml
-CassandraKeyspace <|-- RRDBaseStorage
+CassandraSession <|-- RRDBaseStorage
 RRDBaseStorage <|-- RRDRawStorage
 RRDBaseStorage <|-- RRDAgregatedStorage
 
@@ -265,7 +265,7 @@ If you want to compute an expression based on several datasources with different
 ## castor.metadata
 ```plantuml
 class MetaData
-CassandraKeyspace <|-- MetaDataStorage
+CassandraSession <|-- MetaDataStorage
 ```
 * Classes MetaData and MetaDataStorage manage table metadatas and enables you to get or to store values in this table concerning your datasources
 

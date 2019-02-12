@@ -8,7 +8,7 @@ So it may be easy to adapt your graphing tool based on rrdtool to use Castor. Ca
 # Start with castor
 
 ## Test with web api:
-
+* Install python cassandra driver and packages python-flask python-flask-restful
 * Configure demo/castor.conf
 * Run in a terminal
 ```
